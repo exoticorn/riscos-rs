@@ -1,6 +1,7 @@
-use embedded_io::{ErrorType, Read};
+use embedded_io::{ErrorType, Read, Write};
 
 use crate::{
+    io::ReadExt,
     path::{self, Path},
     sys,
 };
@@ -38,6 +39,20 @@ impl File {
             Ok(File(handle))
         }
     }
+
+    pub fn create<'a, P: Into<Path<'a>>>(path: P) -> Result<File, Error> {
+        let mut buffer = [0u8; path::MAX_PATH_LENGTH];
+        let path_str = path
+            .into()
+            .to_c_str(&mut buffer)
+            .map_err(|_| Error::InvalidPath)?;
+        let handle = unsafe { sys::os::find_create(path_str.as_ptr()) };
+        if handle == 0 {
+            Err(Error::NotFound)
+        } else {
+            Ok(File(handle))
+        }
+    }
 }
 
 impl Drop for File {
@@ -58,5 +73,35 @@ impl Read for File {
         } else {
             Ok(count)
         }
+    }
+}
+
+impl ReadExt for File {
+    fn read_to_end(&mut self, buf: &mut alloc::vec::Vec<u8>) -> Result<usize, Self::Error> {
+        let mut read_buf = [0u8; 1024];
+        let mut total_size = 0;
+        loop {
+            let size = self.read(&mut read_buf)?;
+            if size == 0 {
+                return Ok(total_size);
+            }
+            total_size += size;
+            buf.extend_from_slice(&read_buf[..size]);
+        }
+    }
+}
+
+impl Write for File {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        let (count, success) = unsafe { sys::os::gbpb_write(buf.as_ptr(), buf.len(), self.0) };
+        if !success {
+            Err(Error::PermissionDenied)
+        } else {
+            Ok(count)
+        }
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        Ok(())
     }
 }
