@@ -1,4 +1,4 @@
-use core::arch::asm;
+use core::{arch::asm, ffi::c_char};
 
 pub struct Env {
     pub command: *const u8,
@@ -105,4 +105,47 @@ pub fn exit() -> ! {
     unsafe {
         asm!("swi 0x11", options(noreturn, nostack));
     }
+}
+
+pub unsafe fn find_open(path: *const c_char) -> u32 {
+    let mut handle: u32;
+    asm!(
+        "swi 0x0d",
+        in("r0") 0x43,
+        in("r1") path,
+        lateout("r0") handle,
+        options(nostack)
+    );
+    handle
+}
+
+pub fn find_close(handle: u32) {
+    unsafe {
+        asm!(
+            "swi 0x0d",
+            in("r0") 0,
+            in("r1") handle,
+            lateout("r0") _,
+            options(nostack)
+        )
+    }
+}
+
+pub unsafe fn gbpb_read(buffer: *mut u8, size: usize, handle: u32) -> (usize, bool) {
+    let mut bytes_left: usize;
+    let mut success: u32;
+    asm!(
+        "swi 0x2000c",
+        "movvs r0, #0",
+        in("r0") 4,
+        in("r1") handle,
+        in("r2") buffer,
+        in("r3") size,
+        lateout("r0") success,
+        lateout("r2") _,
+        lateout("r3") bytes_left,
+        lateout("r4") _,
+        options(nostack)
+    );
+    (size - bytes_left, success != 0)
 }

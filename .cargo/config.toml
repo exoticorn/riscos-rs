@@ -2,7 +2,7 @@
 target = "arm-none-eabi.json"
 
 [unstable]
-build-std = ["core"]
+build-std = ["core", "alloc"]
 build-std-features = ["compiler-builtins-weak-intrinsics"]
 
 [target.arm-none-eabi]
