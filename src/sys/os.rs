@@ -180,3 +180,16 @@ pub unsafe fn gbpb_write(buffer: *const u8, size: usize, handle: u32) -> (usize,
     );
     (size - bytes_left, success != 0)
 }
+
+pub unsafe fn file_set_type(fname: *const c_char, ftype: u32) -> bool {
+    let mut success: u32;
+    asm!(
+        "swi 0x20008",
+        "movvs r0, #0",
+        in("r0") 18,
+        in("r1") fname,
+        in("r2") ftype,
+        lateout("r0") success
+    );
+    success != 0
+}

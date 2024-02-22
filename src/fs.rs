@@ -105,3 +105,18 @@ impl Write for File {
         Ok(())
     }
 }
+
+pub fn set_type<'a, P: Into<Path<'a>>>(path: P, ftype: u32) -> Result<(), Error> {
+    let mut buffer = [0u8; path::MAX_PATH_LENGTH];
+    let path_str = path
+        .into()
+        .to_c_str(&mut buffer)
+        .map_err(|_| Error::InvalidPath)?;
+
+    let success = unsafe { sys::os::file_set_type(path_str.as_ptr(), ftype) };
+    if !success {
+        return Err(Error::PermissionDenied);
+    }
+
+    Ok(())
+}
