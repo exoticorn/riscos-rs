@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 embedded-io = { version = "0.6.1", features = ["alloc"] }
+heapless = "0.8.0"

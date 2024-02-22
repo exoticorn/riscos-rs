@@ -5,6 +5,7 @@ extern crate alloc;
 mod rt;
 mod sys;
 
+pub mod env;
 pub mod fs;
 pub mod path;
 pub mod vdu;

@@ -4,12 +4,19 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use riscos::fs;
 use riscos::io::{ReadExt as _, Write as _};
 use riscos::prelude::*;
+use riscos::{env, fs, os};
 
 #[no_mangle]
 pub extern "C" fn main() {
+    if let Some(opt) = env::parse_args(env::ArgSwitch(b"opt")) {
+        println!("parsed args: {}", opt);
+    } else {
+        println!("failed to parse arguments");
+        os::exit();
+    }
+
     let mut content = Vec::new();
     fs::File::open("RAM:$.ReadMe")
         .unwrap()

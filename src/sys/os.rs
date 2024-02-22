@@ -22,6 +22,26 @@ pub fn get_env() -> Env {
     env
 }
 
+pub unsafe fn read_args(
+    syntax: *const u8,
+    input: *const u8,
+    output: *mut u32,
+    output_size: usize,
+) -> bool {
+    let mut success: u32;
+    asm!(
+        "swi 0x20049",
+        "movvs r0, #0",
+        in("r0") syntax,
+        in("r1") input,
+        in("r2") output,
+        in("r3") output_size * 4,
+        in("r4") output_size,
+        lateout("r0") success
+    );
+    success != 0
+}
+
 pub unsafe fn heap_initialise(heap: *mut u8, size: usize) {
     asm!(
         "swi 0x1d",
