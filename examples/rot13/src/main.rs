@@ -6,12 +6,17 @@ extern crate alloc;
 use alloc::vec::Vec;
 use riscos::io::{ReadExt as _, Write as _};
 use riscos::prelude::*;
-use riscos::{env, fs, os};
+use riscos::{
+    env::{self, arg},
+    fs, os,
+};
 
 #[no_mangle]
 pub extern "C" fn main() {
-    if let Some(opt) = env::parse_args(env::ArgSwitch(b"opt")) {
-        println!("parsed args: {}", opt);
+    if let Some((opt, input)) =
+        env::parse_args((arg::Switch(b"opt"), arg::Named(b"input", arg::String)))
+    {
+        println!("parsed args: {}, {}", opt, input);
     } else {
         println!("failed to parse arguments");
         os::exit();
