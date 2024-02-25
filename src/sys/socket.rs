@@ -70,6 +70,22 @@ pub unsafe fn write(socket: u32, buffer: *const u8, size: usize) -> (usize, bool
     (written, success != 0)
 }
 
+pub unsafe fn read(socket: u32, buffer: *mut u8, size: usize) -> (usize, bool) {
+    let mut success: u32;
+    let mut read: usize;
+    asm!(
+        "swi 0x61213",
+        "movvs r1, #0",
+        in("r0") socket,
+        in("r1") buffer,
+        in("r2") size,
+        lateout("r0") read,
+        lateout("r1") success,
+        options(nostack)
+    );
+    (read, success != 0)
+}
+
 #[repr(C)]
 pub struct HostEnt {
     pub host_name: *const u8,

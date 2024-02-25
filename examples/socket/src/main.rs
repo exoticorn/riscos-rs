@@ -3,11 +3,11 @@
 
 extern crate alloc;
 
-use riscos::io::Write;
+use riscos::io::{Read, Write};
 use riscos::prelude::*;
 use riscos::{
     env::{self, arg},
-    net,
+    net, vdu,
 };
 
 #[no_mangle]
@@ -27,8 +27,19 @@ fn run() -> Result<(), ()> {
     })?;
 
     socket.write_all(b"Hello, World!").map_err(|e| {
-        println!("Failde to write to socket: {:?}", e);
+        println!("Failed to write to socket: {:?}", e);
     })?;
+
+    let mut buffer = [0u8; 256];
+    loop {
+        let count = socket.read(&mut buffer).map_err(|e| {
+            println!("Failed to read from socket: {:?}", e);
+        })?;
+        if count == 0 {
+            break;
+        }
+        vdu::write(&buffer[..count]);
+    }
 
     Ok(())
 }

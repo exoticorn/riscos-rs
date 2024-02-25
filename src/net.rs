@@ -71,6 +71,17 @@ impl embedded_io::Write for TcpStream {
     }
 }
 
+impl embedded_io::Read for TcpStream {
+    fn read(&mut self, buf: &mut [u8]) -> core::prelude::v1::Result<usize, Self::Error> {
+        let (count, success) = unsafe { sys::socket::read(self.0, buf.as_mut_ptr(), buf.len()) };
+        if success {
+            Ok(count)
+        } else {
+            Err(Error::Generic)
+        }
+    }
+}
+
 pub struct SocketAddr(u32, u16);
 
 impl SocketAddr {
