@@ -13,11 +13,12 @@ use riscos::{
 
 #[no_mangle]
 pub extern "C" fn main() {
-    if let Some((opt, input)) = env::parse_args((
+    if let Some((opt, input, count)) = env::parse_args((
         arg::Switch(b"opt"),
         arg::Required(arg::Named(b"input", arg::GSTrans)),
+        arg::Named(b"count", arg::Eval),
     )) {
-        println!("parsed args: {}, {}", opt, input);
+        println!("parsed args: {}, {}, {:?}", opt, input, count);
     } else {
         println!("failed to parse arguments");
         os::exit();

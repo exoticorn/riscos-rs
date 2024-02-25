@@ -87,6 +87,57 @@ pub mod arg {
         }
     }
 
+    pub struct Eval;
+
+    #[derive(Debug)]
+    pub enum EvalResult {
+        Int(i32),
+        String(alloc::string::String),
+    }
+
+    impl EvalResult {
+        pub fn as_int(&self) -> Option<i32> {
+            if let EvalResult::Int(v) = *self {
+                Some(v)
+            } else {
+                None
+            }
+        }
+        pub fn as_str(&self) -> Option<&str> {
+            if let EvalResult::String(ref s) = *self {
+                Some(s)
+            } else {
+                None
+            }
+        }
+    }
+
+    unsafe impl Arg for Eval {
+        type Result = Option<EvalResult>;
+
+        fn add_to_syntax(&self, syntax: &mut SyntaxString) -> Result<usize, ()> {
+            syntax.extend_from_slice(b"/E")?;
+            Ok(1)
+        }
+        fn read_result(&self, value: u32) -> Option<EvalResult> {
+            if value == 0 {
+                return None;
+            }
+            unsafe {
+                let ptr = value as *const u8;
+                if *ptr == 0 {
+                    let value = *ptr.offset(1) as u32
+                        + ((*ptr.offset(2) as u32) << 8)
+                        + ((*ptr.offset(3) as u32) << 16)
+                        + ((*ptr.offset(4) as u32) << 24);
+                    Some(EvalResult::Int(value as i32))
+                } else {
+                    Some(EvalResult::String(GSTrans.read_result(value + 1).unwrap()))
+                }
+            }
+        }
+    }
+
     pub struct Named<'a, T: Arg>(pub &'a [u8], pub T);
 
     unsafe impl<'a, T: Arg> Arg for Named<'a, T> {
@@ -183,6 +234,31 @@ where
         let (res1, values) = self.0.read_result(values);
         let (res2, values) = self.1.read_result(values);
         ((res1, res2), values)
+    }
+}
+
+unsafe impl<T1, T2, T3> Args for (T1, T2, T3)
+where
+    T1: Args,
+    T2: Args,
+    T3: Args,
+{
+    type Result = (T1::Result, T2::Result, T3::Result);
+
+    fn add_to_syntax(&self, syntax: &mut SyntaxString) -> Result<usize, ()> {
+        let mut count = self.0.add_to_syntax(syntax)?;
+        syntax.push(b',').map_err(|_| ())?;
+        count += self.1.add_to_syntax(syntax)?;
+        syntax.push(b',').map_err(|_| ())?;
+        count += self.2.add_to_syntax(syntax)?;
+        Ok(count)
+    }
+
+    fn read_result<'a>(&self, values: &'a [u32]) -> (Self::Result, &'a [u32]) {
+        let (res1, values) = self.0.read_result(values);
+        let (res2, values) = self.1.read_result(values);
+        let (res3, values) = self.2.read_result(values);
+        ((res1, res2, res3), values)
     }
 }
 
