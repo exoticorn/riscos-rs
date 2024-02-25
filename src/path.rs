@@ -15,6 +15,12 @@ impl<'a> From<&'a str> for Path<'a> {
     }
 }
 
+impl<'a> From<&'a alloc::string::String> for Path<'a> {
+    fn from(s: &'a alloc::string::String) -> Path<'a> {
+        Path(s.as_bytes())
+    }
+}
+
 impl<'a> From<&'a [u8]> for Path<'a> {
     fn from(s: &'a [u8]) -> Path<'a> {
         Path(s)

@@ -13,19 +13,18 @@ use riscos::{
 
 #[no_mangle]
 pub extern "C" fn main() {
-    if let Some((opt, input, count)) = env::parse_args((
-        arg::Switch(b"opt"),
+    let Some((input, output)) = env::parse_args((
         arg::Required(arg::Named(b"input", arg::GSTrans)),
-        arg::Named(b"count", arg::Eval),
-    )) {
-        println!("parsed args: {}, {}, {:?}", opt, input, count);
-    } else {
+        arg::Required(arg::Named(b"output", arg::GSTrans)),
+    )) else {
         println!("failed to parse arguments");
         os::exit();
-    }
+    };
+
+    println!("{} -> {}", &input, &output);
 
     let mut content = Vec::new();
-    fs::File::open("RAM:$.ReadMe")
+    fs::File::open(&input)
         .unwrap()
         .read_to_end(&mut content)
         .unwrap();
@@ -38,11 +37,11 @@ pub extern "C" fn main() {
         }
     }
 
-    fs::File::create("RAM:$.ReadMe_r13")
+    fs::File::create(&output)
         .unwrap()
         .write_all(&content)
         .unwrap();
-    fs::set_type("RAM:$.ReadMe_r13", 0xfff).unwrap();
+    fs::set_type(&output, 0xfff).unwrap();
 
     println!("Encrypted {} bytes of text!", content.len());
 }
