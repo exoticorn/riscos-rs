@@ -9,6 +9,15 @@ pub enum Error {
     Generic,
 }
 
+impl embedded_io::Error for Error {
+    fn kind(&self) -> embedded_io::ErrorKind {
+        use embedded_io::ErrorKind;
+        match *self {
+            Error::Generic => ErrorKind::Other,
+        }
+    }
+}
+
 pub type Result<T> = core::result::Result<T, Error>;
 
 impl TcpStream {
@@ -43,11 +52,48 @@ impl Drop for TcpStream {
     }
 }
 
+impl embedded_io::ErrorType for TcpStream {
+    type Error = Error;
+}
+
+impl embedded_io::Write for TcpStream {
+    fn write(&mut self, buf: &[u8]) -> core::prelude::v1::Result<usize, Self::Error> {
+        let (count, success) = unsafe { sys::socket::write(self.0, buf.as_ptr(), buf.len()) };
+        if success {
+            Ok(count)
+        } else {
+            Err(Error::Generic)
+        }
+    }
+
+    fn flush(&mut self) -> core::prelude::v1::Result<(), Self::Error> {
+        todo!()
+    }
+}
+
 pub struct SocketAddr(u32, u16);
 
 impl SocketAddr {
     pub fn new<A: Into<IpAddr>>(addr: A, port: u16) -> SocketAddr {
         SocketAddr(addr.into().0, port)
+    }
+}
+
+impl FromStr for SocketAddr {
+    type Err = ();
+    fn from_str(s: &str) -> core::result::Result<SocketAddr, ()> {
+        let Some((host, port)) = s.split_once(':') else {
+            return Err(());
+        };
+        let ip: IpAddr = host.parse()?;
+        let port: u16 = port.parse().map_err(|_| ())?;
+        Ok(SocketAddr(ip.0, port))
+    }
+}
+
+impl core::fmt::Display for SocketAddr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::write!(f, "{}:{}", IpAddr(self.0), self.1)
     }
 }
 

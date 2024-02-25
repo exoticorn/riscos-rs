@@ -54,6 +54,22 @@ pub unsafe fn connect(socket: u32, addr: *const u8, addr_size: u32) -> bool {
     success != 0
 }
 
+pub unsafe fn write(socket: u32, buffer: *const u8, size: usize) -> (usize, bool) {
+    let mut success: u32;
+    let mut written: usize;
+    asm!(
+        "swi 0x61214",
+        "movvs r1, #0",
+        in("r0") socket,
+        in("r1") buffer,
+        in("r2") size,
+        lateout("r0") written,
+        lateout("r1") success,
+        options(nostack)
+    );
+    (written, success != 0)
+}
+
 #[repr(C)]
 pub struct HostEnt {
     pub host_name: *const u8,
