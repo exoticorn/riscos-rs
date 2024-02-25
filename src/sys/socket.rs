@@ -53,3 +53,27 @@ pub unsafe fn connect(socket: u32, addr: *const u8, addr_size: u32) -> bool {
     );
     success != 0
 }
+
+#[repr(C)]
+pub struct HostEnt {
+    pub host_name: *const u8,
+    pub aliases: *const *const u8,
+    pub address_type: i32,
+    pub address_size: usize,
+    pub addresses: *const *const u32,
+}
+
+pub unsafe fn get_host_by_name(host: *const u8) -> Option<*const HostEnt> {
+    let mut entry: *const HostEnt;
+    asm!(
+        "swi 0x46000",
+        in("r1") host,
+        lateout("r1") entry,
+        options(nostack)
+    );
+    if entry.is_null() {
+        None
+    } else {
+        Some(entry)
+    }
+}
