@@ -41,12 +41,15 @@ pub mod arg {
     pub struct String;
 
     unsafe impl Arg for String {
-        type Result = alloc::string::String;
+        type Result = Option<alloc::string::String>;
 
         fn add_to_syntax(&self, _syntax: &mut SyntaxString) -> Result<usize, ()> {
             Ok(1)
         }
-        fn read_result(&self, value: u32) -> alloc::string::String {
+        fn read_result(&self, value: u32) -> Option<alloc::string::String> {
+            if value == 0 {
+                return None;
+            }
             let mut result = alloc::string::String::new();
             unsafe {
                 let mut ptr = value as *const u8;
@@ -55,7 +58,32 @@ pub mod arg {
                     ptr = ptr.add(1);
                 }
             }
-            result
+            Some(result)
+        }
+    }
+
+    pub struct GSTrans;
+
+    unsafe impl Arg for GSTrans {
+        type Result = Option<alloc::string::String>;
+
+        fn add_to_syntax(&self, syntax: &mut SyntaxString) -> Result<usize, ()> {
+            syntax.extend_from_slice(b"/G")?;
+            Ok(1)
+        }
+        fn read_result(&self, value: u32) -> Option<alloc::string::String> {
+            if value == 0 {
+                return None;
+            }
+            unsafe {
+                let ptr = value as *const u8;
+                let size = *ptr as usize + *ptr.offset(1) as usize * 256;
+                let mut result = alloc::string::String::with_capacity(size);
+                for i in 0..size {
+                    result.push(*ptr.offset(2 + i as isize) as char);
+                }
+                Some(result)
+            }
         }
     }
 
@@ -70,6 +98,37 @@ pub mod arg {
         }
         fn read_result(&self, value: u32) -> Self::Result {
             self.1.read_result(value)
+        }
+    }
+
+    pub struct Required<T>(pub T);
+
+    pub trait Optional {
+        type Inner;
+        fn unwrap(self) -> Self::Inner;
+    }
+
+    impl<T> Optional for Option<T> {
+        type Inner = T;
+        fn unwrap(self) -> T {
+            self.unwrap()
+        }
+    }
+
+    unsafe impl<T> Arg for Required<T>
+    where
+        T: Arg,
+        T::Result: Optional,
+    {
+        type Result = <T::Result as Optional>::Inner;
+
+        fn add_to_syntax(&self, syntax: &mut SyntaxString) -> Result<usize, ()> {
+            let c = self.0.add_to_syntax(syntax)?;
+            syntax.extend_from_slice(b"/A")?;
+            Ok(c)
+        }
+        fn read_result(&self, value: u32) -> Self::Result {
+            self.0.read_result(value).unwrap()
         }
     }
 

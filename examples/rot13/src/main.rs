@@ -13,9 +13,10 @@ use riscos::{
 
 #[no_mangle]
 pub extern "C" fn main() {
-    if let Some((opt, input)) =
-        env::parse_args((arg::Switch(b"opt"), arg::Named(b"input", arg::String)))
-    {
+    if let Some((opt, input)) = env::parse_args((
+        arg::Switch(b"opt"),
+        arg::Required(arg::Named(b"input", arg::GSTrans)),
+    )) {
         println!("parsed args: {}, {}", opt, input);
     } else {
         println!("failed to parse arguments");
