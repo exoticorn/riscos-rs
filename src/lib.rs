@@ -7,9 +7,11 @@ mod sys;
 
 pub mod env;
 pub mod fs;
+mod helper;
 pub mod net;
 pub mod path;
 pub mod vdu;
+pub mod wimp;
 
 pub mod os {
     pub use crate::sys::os::exit;

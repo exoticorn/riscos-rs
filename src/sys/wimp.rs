@@ -3,7 +3,7 @@ use core::arch::asm;
 pub struct SlotSize {
     pub current: usize,
     pub next: usize,
-    pub free: usize
+    pub free: usize,
 }
 
 pub fn slot_size(new_current: Option<usize>, new_next: Option<usize>) -> SlotSize {
@@ -23,5 +23,54 @@ pub fn slot_size(new_current: Option<usize>, new_next: Option<usize>) -> SlotSiz
         );
     }
 
-    SlotSize { current, next, free }
+    SlotSize {
+        current,
+        next,
+        free,
+    }
+}
+
+pub unsafe fn initialize(version: u32, name: *const u8, user_messages: *const u32) -> (u32, u32) {
+    let mut current_version;
+    let mut handle;
+
+    asm!(
+        "swi 0x400c0",
+        in("r0") version,
+        in("r1") 0x4B534154,
+        in("r2") name,
+        in("r3") user_messages,
+        lateout("r0") current_version,
+        lateout("r1") handle,
+        options(nostack)
+    );
+
+    (current_version, handle)
+}
+
+pub fn shutdown(handle: u32) {
+    unsafe {
+        asm!(
+            "swi 0x400dd",
+            in("r0") handle,
+            in("r1") 0x4B534154,
+            lateout("r0") _,
+            options(nostack)
+        );
+    }
+}
+
+pub unsafe fn poll(poll_mask: u32, block: *mut u32, poll_word: *const u32) -> (u32, u32) {
+    let mut reason_code;
+    let mut sender;
+    asm!(
+        "swi 0x400c7",
+        in("r0") poll_mask,
+        in("r1") block,
+        in("r3") poll_word,
+        lateout("r0") reason_code,
+        out("r2") sender,
+        options(nostack)
+    );
+    (reason_code, sender)
 }
