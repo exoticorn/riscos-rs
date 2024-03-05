@@ -74,3 +74,27 @@ pub unsafe fn poll(poll_mask: u32, block: *mut u32, poll_word: *const u32) -> (u
     );
     (reason_code, sender)
 }
+
+pub unsafe fn create_icon(priority: i32, block: *const i32) -> i32 {
+    let mut handle;
+    asm!(
+        "swi 0x400c2",
+        in("r0") priority,
+        in("r1") block,
+        lateout("r0") handle,
+        options(nostack)
+    );
+    handle
+}
+
+pub fn delete_icon(window: i32, icon: i32) {
+    let block = [window, icon];
+    unsafe {
+        asm!(
+            "swi 0x400c4",
+            in("r1") &block,
+            lateout("r1") _,
+            options(nostack)
+        );
+    }
+}
